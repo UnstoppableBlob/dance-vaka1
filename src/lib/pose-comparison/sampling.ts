@@ -1,5 +1,8 @@
 import { clamp } from "@/lib/pose-comparison/math";
 
+export const DEFAULT_ANALYSIS_SAMPLE_FPS = 24;
+export const DEFAULT_ANALYSIS_MAX_FRAMES = 432;
+
 export type AlignedSampleTime = {
   index: number;
   progress: number;
@@ -10,8 +13,8 @@ export type AlignedSampleTime = {
 export function createAlignedSampleTimes({
   masterDuration,
   studentDuration,
-  sampleFps = 4,
-  maxFrames = 72,
+  sampleFps = DEFAULT_ANALYSIS_SAMPLE_FPS,
+  maxFrames = DEFAULT_ANALYSIS_MAX_FRAMES,
 }: {
   masterDuration: number;
   studentDuration: number;
@@ -27,9 +30,17 @@ export function createAlignedSampleTimes({
     throw new Error("Both videos must have a valid duration before analysis.");
   }
 
-  const safeFps = clamp(Number.isFinite(sampleFps) ? sampleFps : 4, 1, 10);
+  const safeFps = clamp(
+    Number.isFinite(sampleFps) ? sampleFps : DEFAULT_ANALYSIS_SAMPLE_FPS,
+    1,
+    30,
+  );
   const safeMaximum = Math.round(
-    clamp(Number.isFinite(maxFrames) ? maxFrames : 72, 12, 180),
+    clamp(
+      Number.isFinite(maxFrames) ? maxFrames : DEFAULT_ANALYSIS_MAX_FRAMES,
+      12,
+      432,
+    ),
   );
   const sampleCount = Math.max(
     8,

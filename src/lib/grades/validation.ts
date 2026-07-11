@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { DEFAULT_ANALYSIS_MAX_FRAMES } from "@/lib/pose-comparison/sampling";
+
 const scoreSchema = z
   .number({ error: "Enter a whole-number score." })
   .int("Scores must be whole numbers.")
@@ -10,13 +12,13 @@ export const gradeAnalysisDetailsSchema = z
   .object({
     version: z.literal(1),
     analyzedAt: z.iso.datetime(),
-    sampleCount: z.number().int().min(1).max(180),
-    matchedFrames: z.number().int().min(0).max(180),
+    sampleCount: z.number().int().min(1).max(DEFAULT_ANALYSIS_MAX_FRAMES),
+    matchedFrames: z.number().int().min(0).max(DEFAULT_ANALYSIS_MAX_FRAMES),
     mismatchCounts: z
       .array(
         z.object({
           label: z.string().trim().min(1).max(100),
-          count: z.number().int().min(1).max(180),
+          count: z.number().int().min(1).max(DEFAULT_ANALYSIS_MAX_FRAMES),
         }),
       )
       .max(20),

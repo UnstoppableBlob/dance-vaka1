@@ -182,7 +182,7 @@ The media service accepts MP4, WebM, MOV, and M4V videos up to 250 MB. It checks
 
 - Publishing requires an active draft with a ready teacher-owned reference video and moves it to `PUBLISHED` with an audit timestamp.
 - Publication and recipient creation run in one serializable transaction. The recipient rows snapshot exactly the class memberships active in that transaction.
-- Later roster additions and removals do not change existing assignment recipients, and a published assignment cannot be published or edited again.
+- Later roster additions and removals do not silently change existing assignment recipients. A published assignment page identifies active students who enrolled afterward and lets the teacher explicitly assign the work to them.
 - The student dashboard reads through `AssignmentStudent`, so students see only published assignments explicitly assigned to them. It derives Not started, In progress, Late, and Completed from the due date and the student's own submission state.
 
 ## Student submissions
@@ -250,7 +250,7 @@ The pure, browser-safe comparison engine is in `src/lib/pose-comparison`. Separa
 
 - The authorized teacher grading route automatically supplies its private reference and submission URLs to a client-only analysis component; teachers do not select files again.
 - MediaPipe Pose Landmarker is loaded only after the teacher starts analysis. The browser samples aligned points across both clips, runs the extracted comparison engine locally, and does not upload landmarks or estimates.
-- The page provides side-by-side playback, skeleton overlays, progress, score estimates, feedback, a sampled-frame timeline, and matched-frame review. Estimates are explicitly labeled as assistive rather than automatic final grades.
+- The page provides side-by-side playback, skeleton overlays, prominent analysis progress, score estimates, feedback, a sampled-frame timeline, and matched-frame review. Videos buffer automatically before analysis, which samples up to 24 frames per second with a 432-frame cap. Each page supports one analysis run; estimates are explicitly labeled as assistive rather than automatic final grades.
 - Analysis prevents overlapping runs, falls back from GPU to CPU model execution, handles missing poses and video/model errors, and closes the model plus pending video operations when the page unmounts.
 - MediaPipe WASM and the lite pose model currently load from the pinned jsDelivr and Google model URLs used by the prototype, so the grading browser needs network access to those hosts.
 

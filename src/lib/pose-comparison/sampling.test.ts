@@ -38,10 +38,19 @@ describe("browser analysis sampling", () => {
         sampleFps: 100,
         maxFrames: 1000,
       }),
-    ).toHaveLength(180);
+    ).toHaveLength(432);
     expect(() =>
       createAlignedSampleTimes({ masterDuration: 0, studentDuration: 10 }),
     ).toThrow("valid duration");
+  });
+
+  it("samples default analyses at twenty-four frames per second", () => {
+    expect(
+      createAlignedSampleTimes({ masterDuration: 10, studentDuration: 10 }),
+    ).toHaveLength(240);
+    expect(
+      createAlignedSampleTimes({ masterDuration: 30, studentDuration: 30 }),
+    ).toHaveLength(432);
   });
 
   it("formats review times and produces deterministic timeline states", () => {

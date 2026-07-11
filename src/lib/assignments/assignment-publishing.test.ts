@@ -8,8 +8,11 @@ import {
 } from "@/generated/prisma/enums";
 import {
   ArchivedClassAssignmentError,
+  assignPublishedAssignmentToNewStudents,
   AssignmentNotPublishableError,
   AssignmentPublishReferenceRequiredError,
+  AssignmentRecipientsNotEditableError,
+  countUnassignedActiveStudents,
   createAssignmentDraft,
   deriveStudentAssignmentStatus,
   listStudentAssignments,
@@ -233,6 +236,61 @@ describe.sequential("assignment publishing and student visibility", () => {
     expect(await listStudentAssignments(studentThree)).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ id: draft.id })]),
     );
+  });
+
+  it("explicitly assigns published work to students who enrolled later", async () => {
+    const danceClass = await createClass("late_enrollment");
+    await db.classMembership.create({
+      data: { classId: danceClass.id, studentId: studentOne.id },
+    });
+    const draft = await createPublishableDraft(danceClass.id);
+    await publishAssignmentDraft(teacherOne, danceClass.id, draft.id);
+    await db.classMembership.createMany({
+      data: [
+        { classId: danceClass.id, studentId: studentThree.id },
+        {
+          classId: danceClass.id,
+          studentId: studentTwo.id,
+          removedAt: new Date(),
+        },
+      ],
+    });
+
+    await expect(
+      countUnassignedActiveStudents(teacherOne, danceClass.id, draft.id),
+    ).resolves.toBe(1);
+    await expect(
+      assignPublishedAssignmentToNewStudents(
+        teacherOne,
+        danceClass.id,
+        draft.id,
+      ),
+    ).resolves.toBe(1);
+    await expect(
+      assignPublishedAssignmentToNewStudents(
+        teacherOne,
+        danceClass.id,
+        draft.id,
+      ),
+    ).resolves.toBe(0);
+    expect(await listStudentAssignments(studentThree)).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: draft.id })]),
+    );
+    expect(await listStudentAssignments(studentTwo)).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: draft.id })]),
+    );
+    await expect(
+      countUnassignedActiveStudents(teacherTwo, danceClass.id, draft.id),
+    ).rejects.toBeInstanceOf(DanceClassNotFoundError);
+
+    const unpublished = await createPublishableDraft(danceClass.id);
+    await expect(
+      assignPublishedAssignmentToNewStudents(
+        teacherOne,
+        danceClass.id,
+        unpublished.id,
+      ),
+    ).rejects.toBeInstanceOf(AssignmentRecipientsNotEditableError);
   });
 
   it("shows only published recipient work and derives Not started and Late", async () => {

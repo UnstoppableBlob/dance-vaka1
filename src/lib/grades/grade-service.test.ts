@@ -24,6 +24,8 @@ import {
   saveTeacherGradeDraft,
 } from "@/lib/grades/grade-service";
 import type { TeacherGradeInput } from "@/lib/grades/types";
+import { teacherGradeInputSchema } from "@/lib/grades/validation";
+import { DEFAULT_ANALYSIS_MAX_FRAMES } from "@/lib/pose-comparison/sampling";
 import {
   getStudentAssignmentDetail,
   SubmissionLockedError,
@@ -191,6 +193,30 @@ describe.sequential("teacher grade persistence and release", () => {
         gradeInput({ overrideScore: 88, overrideReason: "   " }),
       ),
     ).rejects.toBeInstanceOf(ZodError);
+  });
+
+  it("accepts a 28 percent override with the current analysis frame cap", () => {
+    expect(
+      teacherGradeInputSchema.parse(
+        gradeInput({
+          automatedOverall: 74,
+          overrideScore: 28,
+          overrideReason: "Teacher assessment after reviewing the full video.",
+          analysisDetails: {
+            version: 1,
+            analyzedAt: "2027-02-01T12:00:00.000Z",
+            sampleCount: DEFAULT_ANALYSIS_MAX_FRAMES,
+            matchedFrames: DEFAULT_ANALYSIS_MAX_FRAMES - 4,
+            mismatchCounts: [
+              {
+                label: "timing",
+                count: DEFAULT_ANALYSIS_MAX_FRAMES - 10,
+              },
+            ],
+          },
+        }),
+      ),
+    ).toMatchObject({ overrideScore: 28 });
   });
 
   it("saves a private draft and immediately locks response replacement", async () => {

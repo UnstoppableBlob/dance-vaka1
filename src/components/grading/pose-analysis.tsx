@@ -102,6 +102,20 @@ function VideoPanel({
   onReady,
   onError,
 }: VideoPanelProps) {
+  useEffect(() => {
+    const video = videoRef.current;
+    if (
+      video &&
+      video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
+      Number.isFinite(video.duration) &&
+      video.duration > 0
+    ) {
+      onReady(video.duration);
+    } else {
+      video?.load();
+    }
+  }, [onReady, source.url, videoRef]);
+
   return (
     <section>
       <h2 className="font-semibold text-slate-900">{title}</h2>
@@ -110,9 +124,9 @@ function VideoPanel({
           ref={videoRef}
           controls
           playsInline
-          preload="metadata"
+          preload="auto"
           crossOrigin="anonymous"
-          onLoadedMetadata={(event) => onReady(event.currentTarget.duration)}
+          onCanPlay={(event) => onReady(event.currentTarget.duration)}
           onError={onError}
           aria-label={`${title} video`}
           className="h-full w-full object-contain"
@@ -322,6 +336,7 @@ export function PoseAnalysis({
   const reviewAbortRef = useRef<AbortController | null>(null);
   const runningRef = useRef(false);
   const mountedRef = useRef(true);
+  const videoReadyRef = useRef({ master: false, student: false });
   const [masterReady, setMasterReady] = useState(false);
   const [studentReady, setStudentReady] = useState(false);
   const [durations, setDurations] = useState({ master: 0, student: 0 });
@@ -335,6 +350,25 @@ export function PoseAnalysis({
   const [error, setError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<GradingAnalysis | null>(null);
   const [selectedFrame, setSelectedFrame] = useState(0);
+
+  const handleMasterReady = useCallback((duration: number) => {
+    videoReadyRef.current.master = true;
+    setMasterReady(true);
+    setMasterVideoError(null);
+    setDurations((current) => ({ ...current, master: duration }));
+    if (videoReadyRef.current.student) {
+      setStatus("Private videos loaded. Ready to analyze.");
+    }
+  }, []);
+  const handleStudentReady = useCallback((duration: number) => {
+    videoReadyRef.current.student = true;
+    setStudentReady(true);
+    setStudentVideoError(null);
+    setDurations((current) => ({ ...current, student: duration }));
+    if (videoReadyRef.current.master) {
+      setStatus("Private videos loaded. Ready to analyze.");
+    }
+  }, []);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -574,6 +608,10 @@ export function PoseAnalysis({
   const videoError = masterVideoError || studentVideoError;
   const videosReady = masterReady && studentReady && !videoError;
   const gradeReleased = initialGrade?.status === "RELEASED";
+  const progressPercent =
+    progress.total > 0
+      ? Math.round((progress.completed / progress.total) * 100)
+      : 0;
 
   return (
     <div className="mt-8">
@@ -583,17 +621,9 @@ export function PoseAnalysis({
           source={reference}
           videoRef={masterVideoRef}
           canvasRef={masterCanvasRef}
-          onReady={(duration) => {
-            setMasterReady(true);
-            setMasterVideoError(null);
-            setDurations((current) => ({ ...current, master: duration }));
-            setStatus(
-              studentReady
-                ? "Private videos loaded. Ready to analyze."
-                : "Loading private videos…",
-            );
-          }}
+          onReady={handleMasterReady}
           onError={() => {
+            videoReadyRef.current.master = false;
             setMasterReady(false);
             setMasterVideoError(
               "The teacher reference could not be loaded. Reload for a fresh private link.",
@@ -605,17 +635,9 @@ export function PoseAnalysis({
           source={submission}
           videoRef={studentVideoRef}
           canvasRef={studentCanvasRef}
-          onReady={(duration) => {
-            setStudentReady(true);
-            setStudentVideoError(null);
-            setDurations((current) => ({ ...current, student: duration }));
-            setStatus(
-              masterReady
-                ? "Private videos loaded. Ready to analyze."
-                : "Loading private videos…",
-            );
-          }}
+          onReady={handleStudentReady}
           onError={() => {
+            videoReadyRef.current.student = false;
             setStudentReady(false);
             setStudentVideoError(
               "The student response could not be loaded. Reload for a fresh private link.",
@@ -633,38 +655,79 @@ export function PoseAnalysis({
               final grades.
             </p>
           </div>
-          <button
-            type="button"
-            className="primary-button"
-            disabled={!videosReady || isAnalyzing || gradeReleased}
-            onClick={runAnalysis}
-          >
-            {gradeReleased
-              ? "Grade released"
-              : isAnalyzing
-                ? "Analyzing…"
-                : analysis
-                  ? "Run again"
-                  : "Analyze videos"}
-          </button>
+          {analysis || gradeReleased ? (
+            <span className="rounded-md bg-emerald-100 px-3 py-2 text-sm font-medium text-emerald-800">
+              {gradeReleased ? "Grade released" : "Analysis complete"}
+            </span>
+          ) : (
+            <button
+              type="button"
+              className="primary-button"
+              disabled={!videosReady || isAnalyzing}
+              onClick={runAnalysis}
+            >
+              {isAnalyzing
+                ? "Analysis in progress…"
+                : videosReady
+                  ? "Analyze videos"
+                  : "Buffering videos…"}
+            </button>
+          )}
         </div>
 
-        <p className="mt-4 text-sm text-slate-600" aria-live="polite">
-          {status}
-        </p>
         {isAnalyzing ? (
-          <div className="mt-3">
-            <progress
-              className="h-2 w-full"
-              value={progress.completed}
-              max={Math.max(1, progress.total)}
-              aria-label="Analysis progress"
-            />
-            <p className="mt-1 text-xs text-slate-500">
-              {progress.completed}/{progress.total} sampled frames
-            </p>
+          <div
+            className="mt-5 flex gap-4 rounded-lg border border-indigo-200 bg-indigo-50 p-4"
+            role="status"
+            aria-live="polite"
+          >
+            <svg
+              className="mt-0.5 h-6 w-6 shrink-0 animate-spin text-indigo-700 motion-reduce:animate-none"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="9"
+                stroke="currentColor"
+                strokeWidth="3"
+              />
+              <path
+                className="opacity-90"
+                d="M21 12a9 9 0 0 0-9-9"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+              />
+            </svg>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-indigo-950">
+                {progress.total > 0
+                  ? `Analyzing dance frames — ${progressPercent}%`
+                  : "Preparing the pose model…"}
+              </p>
+              <p className="mt-1 text-sm text-indigo-800">{status}</p>
+              <progress
+                className="mt-3 h-2 w-full accent-indigo-700"
+                value={progress.completed}
+                max={Math.max(1, progress.total)}
+                aria-label="Analysis progress"
+              />
+              <p className="mt-1 text-xs text-indigo-700">
+                {progress.total > 0
+                  ? `${progress.completed} of ${progress.total} sampled frames`
+                  : "Loading analysis resources"}
+              </p>
+            </div>
           </div>
-        ) : null}
+        ) : (
+          <p className="mt-4 text-sm text-slate-600" aria-live="polite">
+            {status}
+          </p>
+        )}
         {videoError || error ? (
           <p
             className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-800"

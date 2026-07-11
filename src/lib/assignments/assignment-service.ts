@@ -103,6 +103,13 @@ export class AssignmentNotPublishableError extends Error {
   }
 }
 
+export class AssignmentRecipientsNotEditableError extends Error {
+  constructor() {
+    super("Only published assignments can receive additional students.");
+    this.name = "AssignmentRecipientsNotEditableError";
+  }
+}
+
 export class StudentAssignmentAuthorizationError extends Error {
   constructor() {
     super("Only students can view assigned work.");
@@ -472,6 +479,104 @@ export async function publishAssignmentDraft(
   }
 
   throw new Error("Assignment publication could not be completed.");
+}
+
+async function requireOwnedAssignment(
+  transaction: Prisma.TransactionClient,
+  teacherId: string,
+  classId: string,
+  assignmentId: string,
+) {
+  await requireOwnedClass(transaction, teacherId, classId);
+  const assignment = await transaction.assignment.findFirst({
+    where: { id: assignmentId, classId },
+    select: { id: true, status: true },
+  });
+  if (!assignment) throw new AssignmentNotFoundError();
+  return assignment;
+}
+
+export async function countUnassignedActiveStudents(
+  actor: SafeUser,
+  classId: string,
+  assignmentId: string,
+) {
+  requireTeacher(actor);
+  const parsedClassId = classIdSchema.parse(classId);
+  const parsedAssignmentId = assignmentIdSchema.parse(assignmentId);
+
+  return db.$transaction(async (transaction) => {
+    const assignment = await requireOwnedAssignment(
+      transaction,
+      actor.id,
+      parsedClassId,
+      parsedAssignmentId,
+    );
+    if (assignment.status !== AssignmentStatus.PUBLISHED) return 0;
+    return transaction.classMembership.count({
+      where: {
+        classId: parsedClassId,
+        removedAt: null,
+        student: {
+          assignmentRecords: { none: { assignmentId: parsedAssignmentId } },
+        },
+      },
+    });
+  });
+}
+
+export async function assignPublishedAssignmentToNewStudents(
+  actor: SafeUser,
+  classId: string,
+  assignmentId: string,
+) {
+  requireTeacher(actor);
+  const parsedClassId = classIdSchema.parse(classId);
+  const parsedAssignmentId = assignmentIdSchema.parse(assignmentId);
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      return await db.$transaction(
+        async (transaction) => {
+          const assignment = await requireOwnedAssignment(
+            transaction,
+            actor.id,
+            parsedClassId,
+            parsedAssignmentId,
+          );
+          if (assignment.status !== AssignmentStatus.PUBLISHED) {
+            throw new AssignmentRecipientsNotEditableError();
+          }
+          const activeMembers = await transaction.classMembership.findMany({
+            where: {
+              classId: parsedClassId,
+              removedAt: null,
+              student: {
+                assignmentRecords: {
+                  none: { assignmentId: parsedAssignmentId },
+                },
+              },
+            },
+            select: { studentId: true },
+          });
+          if (activeMembers.length === 0) return 0;
+          const result = await transaction.assignmentStudent.createMany({
+            data: activeMembers.map(({ studentId }) => ({
+              assignmentId: parsedAssignmentId,
+              studentId,
+            })),
+            skipDuplicates: true,
+          });
+          return result.count;
+        },
+        { isolationLevel: "Serializable" },
+      );
+    } catch (error) {
+      if (isSerializationConflict(error) && attempt < 2) continue;
+      throw error;
+    }
+  }
+  throw new Error("Additional students could not be assigned.");
 }
 
 export async function listStudentAssignments(

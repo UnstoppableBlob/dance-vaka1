@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { DashboardHeader } from "@/app/(dashboard)/dashboard-header";
 import {
+  assignNewStudentsAction,
   archiveAssignmentAction,
   publishAssignmentAction,
 } from "@/app/(dashboard)/teacher/classes/[classId]/assignments/actions";
@@ -17,6 +18,7 @@ import {
 } from "@/generated/prisma/enums";
 import {
   AssignmentNotFoundError,
+  countUnassignedActiveStudents,
   getTeacherAssignment,
 } from "@/lib/assignments/assignment-service";
 import { requireRole } from "@/lib/auth/dal";
@@ -75,6 +77,15 @@ export default async function AssignmentPage({
     assignment.id,
   );
   const publishAction = publishAssignmentAction.bind(
+    null,
+    classId,
+    assignment.id,
+  );
+  const unassignedActiveStudents =
+    assignment.status === AssignmentStatus.PUBLISHED
+      ? await countUnassignedActiveStudents(actor, classId, assignment.id)
+      : 0;
+  const assignNewStudents = assignNewStudentsAction.bind(
     null,
     classId,
     assignment.id,
@@ -186,6 +197,27 @@ export default async function AssignmentPage({
                       {assignment.recipientCount}
                     </dd>
                   </div>
+                  {unassignedActiveStudents > 0 ? (
+                    <div className="rounded-md border border-amber-200 bg-amber-50 p-4">
+                      <dt className="font-medium text-amber-950">
+                        Newly enrolled students
+                      </dt>
+                      <dd className="mt-2 text-sm text-amber-900">
+                        {unassignedActiveStudents} active student
+                        {unassignedActiveStudents === 1 ? " was" : "s were"} not
+                        enrolled when this assignment was published.
+                      </dd>
+                      <form action={assignNewStudents} className="mt-3">
+                        <ConfirmSubmitButton
+                          className="primary-button"
+                          confirmMessage="Assign this published assignment to all active students who do not already have it?"
+                          pendingLabel="Assigning…"
+                        >
+                          Assign to newly enrolled students
+                        </ConfirmSubmitButton>
+                      </form>
+                    </div>
+                  ) : null}
                 </>
               ) : null}
               <div>

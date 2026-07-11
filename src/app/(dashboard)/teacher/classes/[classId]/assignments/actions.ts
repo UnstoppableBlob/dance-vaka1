@@ -11,7 +11,9 @@ import {
   AssignmentNotFoundError,
   AssignmentNotPublishableError,
   AssignmentPublishReferenceRequiredError,
+  AssignmentRecipientsNotEditableError,
   AssignmentTitleTakenError,
+  assignPublishedAssignmentToNewStudents,
   createAssignmentDraft,
   publishAssignmentDraft,
   ReferenceVideoUnavailableError,
@@ -175,6 +177,28 @@ export async function publishAssignmentAction(
       error instanceof AssignmentNotPublishableError ||
       error instanceof AssignmentPublishReferenceRequiredError ||
       error instanceof ArchivedClassAssignmentError ||
+      error instanceof DanceClassNotFoundError
+    ) {
+      return;
+    }
+    throw error;
+  }
+  revalidatePath(`/teacher/classes/${classId}`);
+  revalidatePath(`/teacher/classes/${classId}/assignments/${assignmentId}`);
+  revalidatePath("/student");
+}
+
+export async function assignNewStudentsAction(
+  classId: string,
+  assignmentId: string,
+) {
+  const actor = await requireRole(UserRole.TEACHER);
+  try {
+    await assignPublishedAssignmentToNewStudents(actor, classId, assignmentId);
+  } catch (error) {
+    if (
+      error instanceof AssignmentNotFoundError ||
+      error instanceof AssignmentRecipientsNotEditableError ||
       error instanceof DanceClassNotFoundError
     ) {
       return;
