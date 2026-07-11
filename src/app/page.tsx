@@ -34,13 +34,11 @@ export default function Home() {
         </h2>
         {[
           ["Frontend", "Next.js 16, React 19, TypeScript, Tailwind CSS 4"],
-          ["Backend", "Server Components, Server Actions, domain services"],
           ["Data", "PostgreSQL with Prisma ORM 7 and the pg adapter"],
           ["Video", "MediaRecorder with private S3-compatible storage"],
           ["Pose analysis", "MediaPipe Pose Landmarker and custom scoring"],
           ["Security", "Argon2id, database sessions, signed media URLs"],
           ["Deployment", "Vercel with Supabase Postgres and Storage"],
-          ["Testing", "Vitest integration tests and Playwright E2E"],
         ].map(([label, value]) => (
           <div
             key={label}
