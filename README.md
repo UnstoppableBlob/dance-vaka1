@@ -253,7 +253,7 @@ The pure, browser-safe comparison engine is in `src/lib/pose-comparison`. Separa
 
 - The authorized teacher grading route automatically supplies its private reference and submission URLs to a client-only analysis component; teachers do not select files again.
 - MediaPipe Pose Landmarker is loaded only after the teacher starts analysis. The browser samples aligned points across both clips, runs the extracted comparison engine locally, and does not upload landmarks or estimates.
-- The page provides side-by-side playback, skeleton overlays, prominent analysis progress, score estimates, feedback, a sampled-frame timeline, and matched-frame review. Videos buffer automatically before analysis, which samples up to 24 frames per second with a 432-frame cap. Each page supports one analysis run; estimates are explicitly labeled as assistive rather than automatic final grades.
+- The page provides side-by-side playback, skeleton overlays, prominent analysis progress, score estimates, feedback, a sampled-frame timeline, and matched-frame review. Videos buffer automatically before analysis, which samples up to 8 frames per second with a 432-frame cap. Each page supports one analysis run; estimates are explicitly labeled as assistive rather than automatic final grades.
 - Analysis prevents overlapping runs, falls back from GPU to CPU model execution, handles missing poses and video/model errors, and closes the model plus pending video operations when the page unmounts.
 - MediaPipe WASM and the lite pose model currently load from the pinned jsDelivr and Google model URLs used by the prototype, so the grading browser needs network access to those hosts.
 

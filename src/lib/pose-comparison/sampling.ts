@@ -1,6 +1,6 @@
 import { clamp } from "@/lib/pose-comparison/math";
 
-export const DEFAULT_ANALYSIS_SAMPLE_FPS = 24;
+export const DEFAULT_ANALYSIS_SAMPLE_FPS = 8;
 export const DEFAULT_ANALYSIS_MAX_FRAMES = 432;
 
 export type AlignedSampleTime = {

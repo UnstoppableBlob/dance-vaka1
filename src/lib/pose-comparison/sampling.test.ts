@@ -44,13 +44,13 @@ describe("browser analysis sampling", () => {
     ).toThrow("valid duration");
   });
 
-  it("samples default analyses at twenty-four frames per second", () => {
+  it("samples default analyses at eight frames per second", () => {
     expect(
       createAlignedSampleTimes({ masterDuration: 10, studentDuration: 10 }),
-    ).toHaveLength(240);
+    ).toHaveLength(80);
     expect(
       createAlignedSampleTimes({ masterDuration: 30, studentDuration: 30 }),
-    ).toHaveLength(432);
+    ).toHaveLength(240);
   });
 
   it("formats review times and produces deterministic timeline states", () => {
