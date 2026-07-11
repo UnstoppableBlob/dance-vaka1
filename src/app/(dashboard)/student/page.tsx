@@ -17,7 +17,7 @@ import {
 } from "@/lib/memberships/membership-service";
 
 export const metadata: Metadata = {
-  title: "Student dashboard | Dance Academy",
+  title: "Student dashboard | MotionMatch",
 };
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {

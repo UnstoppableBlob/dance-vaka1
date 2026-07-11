@@ -8,7 +8,7 @@ import { requireRole } from "@/lib/auth/dal";
 import { getStudentHistoryPage } from "@/lib/dashboard/student-dashboard-service";
 
 export const metadata: Metadata = {
-  title: "Assignment history | Dance Academy",
+  title: "Assignment history | MotionMatch",
 };
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {

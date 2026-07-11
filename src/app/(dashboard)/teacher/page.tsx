@@ -10,7 +10,7 @@ import { getTeacherDashboardOverview } from "@/lib/dashboard/teacher-dashboard-s
 import type { DashboardSubmission } from "@/lib/dashboard/types";
 
 export const metadata: Metadata = {
-  title: "Teacher dashboard | Dance Academy",
+  title: "Teacher dashboard | MotionMatch",
 };
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {

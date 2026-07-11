@@ -19,7 +19,7 @@ if (
 }
 
 async function main() {
-  const password = process.env.SEED_DEMO_PASSWORD ?? "DanceAcademy123";
+  const password = process.env.SEED_DEMO_PASSWORD ?? "MotionMatch123";
   const passwordHash = await argon2.hash(password, {
     type: argon2.argon2id,
     memoryCost: 65_536,

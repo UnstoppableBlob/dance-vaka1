@@ -24,7 +24,7 @@ import {
 import { listPendingClassInvitations } from "@/lib/invitations/invitation-service";
 import { listActiveClassMembers } from "@/lib/memberships/membership-service";
 
-export const metadata: Metadata = { title: "Class | Dance Academy" };
+export const metadata: Metadata = { title: "Class | MotionMatch" };
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",

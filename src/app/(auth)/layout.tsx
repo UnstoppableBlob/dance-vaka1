@@ -12,7 +12,7 @@ export default function AuthLayout({
           href="/"
           className="mb-8 inline-block font-semibold text-slate-900 hover:text-indigo-700"
         >
-          Dance Academy
+          MotionMatch
         </Link>
         {children}
       </div>

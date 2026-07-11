@@ -29,7 +29,7 @@ import {
 import { createAuthorizedMediaRead } from "@/lib/media/media-service";
 
 export const metadata: Metadata = {
-  title: "Assignment | Dance Academy",
+  title: "Assignment | MotionMatch",
 };
 
 const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {

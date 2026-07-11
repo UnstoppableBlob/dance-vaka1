@@ -5,7 +5,7 @@ import { RegisterForm } from "@/app/(auth)/register/register-form";
 import { dashboardPathForRole } from "@/lib/auth/authorization";
 import { getCurrentUser } from "@/lib/auth/dal";
 
-export const metadata: Metadata = { title: "Register | Dance Academy" };
+export const metadata: Metadata = { title: "Register | MotionMatch" };
 
 export default async function RegisterPage() {
   const user = await getCurrentUser();

@@ -12,7 +12,7 @@ import {
 } from "@/lib/dashboard/teacher-dashboard-service";
 
 export const metadata: Metadata = {
-  title: "Student submission | Dance Academy",
+  title: "Student submission | MotionMatch",
 };
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {

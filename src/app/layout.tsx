@@ -8,7 +8,8 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Dance Academy",
+  title: "MotionMatch",
+  applicationName: "MotionMatch",
   description:
     "Dance instruction, practice submissions, and pose-assisted review.",
 };

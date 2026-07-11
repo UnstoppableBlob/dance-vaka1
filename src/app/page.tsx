@@ -8,7 +8,7 @@ export default function Home() {
           Learn through movement
         </p>
         <h1 className="text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
-          Dance Academy
+          MotionMatch
         </h1>
         <p className="mt-5 text-lg leading-8 text-slate-600">
           A classroom workspace for dance assignments, video practice, and
@@ -27,15 +27,20 @@ export default function Home() {
 
       <section
         aria-labelledby="foundation-heading"
-        className="mt-12 grid gap-4 sm:grid-cols-3"
+        className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
       >
         <h2 id="foundation-heading" className="sr-only">
-          Application foundation
+          Technology stack
         </h2>
         {[
-          ["Application", "Next.js App Router and TypeScript"],
-          ["Data", "PostgreSQL with Prisma"],
-          ["Video", "Private S3-compatible storage"],
+          ["Frontend", "Next.js 16, React 19, TypeScript, Tailwind CSS 4"],
+          ["Backend", "Server Components, Server Actions, domain services"],
+          ["Data", "PostgreSQL with Prisma ORM 7 and the pg adapter"],
+          ["Video", "MediaRecorder with private S3-compatible storage"],
+          ["Pose analysis", "MediaPipe Pose Landmarker and custom scoring"],
+          ["Security", "Argon2id, database sessions, signed media URLs"],
+          ["Deployment", "Vercel with Supabase Postgres and Storage"],
+          ["Testing", "Vitest integration tests and Playwright E2E"],
         ].map(([label, value]) => (
           <div
             key={label}

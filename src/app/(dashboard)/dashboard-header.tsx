@@ -10,7 +10,7 @@ export function DashboardHeader({ user }: { user: SafeUser }) {
           href={user.role === "TEACHER" ? "/teacher" : "/student"}
           className="font-semibold text-slate-950 hover:text-indigo-700"
         >
-          Dance Academy
+          MotionMatch
         </Link>
         <p className="text-sm text-slate-500">
           {user.username} · {user.role === "TEACHER" ? "Teacher" : "Student"}

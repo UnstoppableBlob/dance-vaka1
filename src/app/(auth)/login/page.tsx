@@ -5,7 +5,7 @@ import { LoginForm } from "@/app/(auth)/login/login-form";
 import { dashboardPathForRole } from "@/lib/auth/authorization";
 import { getCurrentUser } from "@/lib/auth/dal";
 
-export const metadata: Metadata = { title: "Sign in | Dance Academy" };
+export const metadata: Metadata = { title: "Sign in | MotionMatch" };
 
 export default async function LoginPage() {
   const user = await getCurrentUser();

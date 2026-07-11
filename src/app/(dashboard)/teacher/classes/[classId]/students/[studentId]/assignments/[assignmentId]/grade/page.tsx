@@ -17,7 +17,7 @@ import {
 } from "@/lib/media/media-service";
 
 export const metadata: Metadata = {
-  title: "Grade submission | Dance Academy",
+  title: "Grade submission | MotionMatch",
 };
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {

@@ -12,7 +12,7 @@ import {
 } from "@/lib/history/teacher-student-history-service";
 
 export const metadata: Metadata = {
-  title: "Student history | Dance Academy",
+  title: "Student history | MotionMatch",
 };
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {

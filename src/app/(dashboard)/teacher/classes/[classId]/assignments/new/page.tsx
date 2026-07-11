@@ -12,7 +12,7 @@ import {
 } from "@/lib/classes/class-service";
 
 export const metadata: Metadata = {
-  title: "New assignment | Dance Academy",
+  title: "New assignment | MotionMatch",
 };
 
 export default async function NewAssignmentPage({

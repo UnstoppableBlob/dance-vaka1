@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
 
-const PASSWORD = "DanceAcademy123";
+const PASSWORD = "MotionMatch123";
 const TEACHER = "e2e_teacher";
 const STUDENT_ONE = "e2e_student_one";
 const STUDENT_TWO = "e2e_student_two";

@@ -1,14 +1,17 @@
-# Dance Academy
+# MotionMatch
 
-Dance Academy is a Khan Academy-style classroom app for dance instruction. Teachers publish private reference videos, students submit recorded attempts, and teachers review browser-generated pose-similarity estimates before releasing a grade. The complete teacher and student workflow is implemented and covered by unit, integration, and browser tests.
+MotionMatch is a Khan Academy-style classroom app for dance instruction. Teachers publish private reference videos, students submit recorded attempts, and teachers review browser-generated pose-similarity estimates before releasing a grade. The complete teacher and student workflow is implemented and covered by unit, integration, and browser tests.
 
 ## Stack
 
 - Next.js 16 App Router, React 19, TypeScript, and Tailwind CSS 4
 - PostgreSQL 17 with Prisma ORM 7 and the `pg` driver adapter
-- S3-compatible private object storage through the AWS SDK
-- MinIO for local video storage
+- Browser MediaRecorder capture with private, presigned S3-compatible video storage through the AWS SDK
+- MediaPipe Tasks Vision Pose Landmarker with a custom TypeScript pose, motion, timing, and coverage comparison engine
+- Supabase Postgres and S3-compatible Storage for production, with MinIO and PostgreSQL containers for local development
+- Vercel hosting, Server Components, Server Actions, and server-only data/storage modules
 - Argon2id password hashing and opaque, HMAC-protected database sessions
+- Vitest unit/integration coverage and Playwright end-to-end browser tests
 
 The app uses Server Components by default. Database and object-storage modules import `server-only` so credentials and privileged clients cannot enter browser bundles.
 
@@ -81,7 +84,7 @@ Stop local services with `npm run services:down`. Add `-- -v` to that command on
 
 ## Demo seed
 
-`npm run db:seed` is idempotent and creates `demo_teacher`, enrolled student `demo_student`, invited student `demo_invited`, and `Demo beginner class`. Their default local password is `DanceAcademy123`; set `SEED_DEMO_PASSWORD` to replace it. The seed intentionally does not create fake media or grades, so those security-sensitive flows still use the real signed-upload path.
+`npm run db:seed` is idempotent and creates `demo_teacher`, enrolled student `demo_student`, invited student `demo_invited`, and `Demo beginner class`. Their default local password is `MotionMatch123`; set `SEED_DEMO_PASSWORD` to replace it. The seed intentionally does not create fake media or grades, so those security-sensitive flows still use the real signed-upload path.
 
 Demo seeding refuses to run when `NODE_ENV=production` unless `ALLOW_DEMO_SEED=true` is explicitly supplied. Do not seed predictable demo credentials into a public deployment.
 
@@ -283,6 +286,53 @@ The pure, browser-safe comparison engine is in `src/lib/pose-comparison`. Separa
 - Schedule authenticated `POST /api/internal/media/cleanup` calls with `Authorization: Bearer $MEDIA_CLEANUP_SECRET` to remove expired sessions, rate-limit records, and abandoned uploads.
 - Run `npm run db:verify-clean`, `npm test`, `npm run test:e2e`, `npm run check`, `npm audit`, and `npm run build` in release CI. Local database-backed checks require Docker.
 - MediaPipe analysis requires browser WebAssembly/video decoding support and network access to the pinned jsDelivr WASM assets and Google-hosted pose model. The CSP already permits those hosts; mirror and update both URLs/CSP if self-hosting them.
+
+### Vercel with Cloudflare R2
+
+The existing S3 storage adapter works with Cloudflare R2 without application-code changes. Create a private R2 bucket and an Object Read & Write API token restricted to that bucket. Keep the bucket's public development URL disabled.
+
+Configure these variables in the Vercel project for Production. Add them to Preview only if preview deployments should use their own database and bucket; do not connect untrusted previews to production data.
+
+| Variable               | Production value                                           |
+| ---------------------- | ---------------------------------------------------------- |
+| `DATABASE_URL`         | Pooled TLS URL from a managed PostgreSQL provider          |
+| `S3_REGION`            | `auto`                                                     |
+| `S3_ENDPOINT`          | `https://<CLOUDFLARE_ACCOUNT_ID>.r2.cloudflarestorage.com` |
+| `S3_BUCKET`            | The private R2 bucket name                                 |
+| `S3_ACCESS_KEY_ID`     | Access Key ID from the bucket-scoped R2 token              |
+| `S3_SECRET_ACCESS_KEY` | Secret Access Key from the bucket-scoped R2 token          |
+| `S3_FORCE_PATH_STYLE`  | `false`                                                    |
+| `SESSION_SECRET`       | A new random value of at least 32 characters               |
+| `MEDIA_CLEANUP_SECRET` | A different new random value of at least 32 characters     |
+
+`TEST_DATABASE_URL`, `POSTGRES_*`, `POSTGRES_PORT`, and `APP_ORIGIN` are only needed by the local Docker/test setup, not by the Vercel runtime.
+
+Browser uploads, video playback, and grading require an R2 CORS rule. Replace the example origin with the final Vercel or custom-domain origin; origins must not end with `/`.
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://your-app.example.com"],
+    "AllowedMethods": ["GET", "PUT", "HEAD"],
+    "AllowedHeaders": ["Content-Type", "Range"],
+    "ExposeHeaders": ["ETag", "Content-Length", "Content-Range"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+For local development against R2, add `http://localhost:3000` as another allowed origin. Vercel preview URLs change per deployment, so use a stable preview domain or add the exact preview origin rather than opening CORS to every origin.
+
+From the repository root, install and authenticate the Vercel CLI, link this single-project repository, and set the variables above in Project Settings or with `vercel env add <NAME> production`. Then apply the committed Prisma migrations and deploy:
+
+```bash
+vercel login
+vercel link
+vercel env run -e production -- npm run db:deploy
+vercel --prod
+```
+
+After deployment, test one teacher upload, one student upload, video playback, and grading in the browser. An R2 `403` usually means the endpoint, token scope, signed `Content-Type`, or system clock is wrong; a browser CORS error means the deployed origin, method, or requested header is missing from the bucket rule.
 
 ## Implemented functionality
 

@@ -11,7 +11,7 @@ import {
   StudentReleasedGradeNotFoundError,
 } from "@/lib/dashboard/student-dashboard-service";
 
-export const metadata: Metadata = { title: "Released grade | Dance Academy" };
+export const metadata: Metadata = { title: "Released grade | MotionMatch" };
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
