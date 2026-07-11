@@ -1,0 +1,252 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  TEACHER
+  STUDENT
+}
+
+enum ClassStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELED
+  EXPIRED
+}
+
+enum AssignmentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum SubmissionStatus {
+  IN_PROGRESS
+  SUBMITTED
+}
+
+enum GradeStatus {
+  DRAFT
+  RELEASED
+}
+
+enum MediaAssetKind {
+  REFERENCE_VIDEO
+  SUBMISSION_VIDEO
+}
+
+enum MediaAssetStatus {
+  PENDING_UPLOAD
+  READY
+  DELETED
+}
+
+model User {
+  id                 String              @id @default(uuid()) @db.Uuid
+  username           String              @db.VarChar(40)
+  usernameNormalized String              @unique @db.VarChar(40)
+  passwordHash       String              @db.VarChar(255)
+  role               UserRole
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  disabledAt         DateTime?
+  sessions           Session[]
+  taughtClasses      DanceClass[]        @relation("ClassTeacher")
+  memberships        ClassMembership[]   @relation("StudentMemberships")
+  invitations        ClassInvitation[]   @relation("InvitedStudent")
+  createdAssignments Assignment[]        @relation("AssignmentCreator")
+  assignmentRecords  AssignmentStudent[] @relation("AssignedStudent")
+  submissions        Submission[]        @relation("StudentSubmissions")
+  gradesGiven        Grade[]             @relation("GradeTeacher")
+  mediaAssets        MediaAsset[]        @relation("MediaOwner")
+
+  @@index([role])
+}
+
+model Session {
+  id         String   @id @default(uuid()) @db.Uuid
+  tokenHash  String   @unique @db.Char(64)
+  userId     String   @db.Uuid
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  userAgent  String?  @db.VarChar(512)
+  ipHash     String?  @db.Char(64)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model DanceClass {
+  id             String            @id @default(uuid()) @db.Uuid
+  name           String            @db.VarChar(120)
+  nameNormalized String            @db.VarChar(120)
+  description    String?           @db.VarChar(1000)
+  status         ClassStatus       @default(ACTIVE)
+  teacherId      String            @db.Uuid
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  archivedAt     DateTime?
+  teacher        User              @relation("ClassTeacher", fields: [teacherId], references: [id], onDelete: Restrict)
+  memberships    ClassMembership[]
+  invitations    ClassInvitation[]
+  assignments    Assignment[]
+
+  @@unique([teacherId, nameNormalized])
+  @@index([teacherId, status])
+}
+
+model ClassMembership {
+  id         String     @id @default(uuid()) @db.Uuid
+  classId    String     @db.Uuid
+  studentId  String     @db.Uuid
+  joinedAt   DateTime   @default(now())
+  removedAt  DateTime?
+  danceClass DanceClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student    User       @relation("StudentMemberships", fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@unique([classId, studentId])
+  @@index([studentId, removedAt])
+}
+
+model ClassInvitation {
+  id                        String           @id @default(uuid()) @db.Uuid
+  classId                   String           @db.Uuid
+  studentId                 String           @db.Uuid
+  invitedUsernameNormalized String           @db.VarChar(40)
+  status                    InvitationStatus @default(PENDING)
+  createdAt                 DateTime         @default(now())
+  respondedAt               DateTime?
+  canceledAt                DateTime?
+  expiresAt                 DateTime?
+  danceClass                DanceClass       @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student                   User             @relation("InvitedStudent", fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@unique([classId, studentId])
+  @@index([studentId, status])
+  @@index([classId, status])
+}
+
+model Assignment {
+  id                    String              @id @default(uuid()) @db.Uuid
+  classId               String              @db.Uuid
+  createdById           String              @db.Uuid
+  title                 String              @db.VarChar(160)
+  titleNormalized       String              @db.VarChar(160)
+  instructions          String?             @db.Text
+  dueAt                 DateTime?
+  status                AssignmentStatus    @default(DRAFT)
+  referenceVideoAssetId String?             @unique @db.Uuid
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  publishedAt           DateTime?
+  archivedAt            DateTime?
+  danceClass            DanceClass          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  createdBy             User                @relation("AssignmentCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  referenceVideo        MediaAsset?         @relation("AssignmentReferenceVideo", fields: [referenceVideoAssetId], references: [id], onDelete: SetNull)
+  assignedStudents      AssignmentStudent[]
+  submissions           Submission[]
+
+  @@unique([classId, titleNormalized])
+  @@index([classId, status])
+  @@index([dueAt])
+}
+
+model AssignmentStudent {
+  id           String     @id @default(uuid()) @db.Uuid
+  assignmentId String     @db.Uuid
+  studentId    String     @db.Uuid
+  assignedAt   DateTime   @default(now())
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student      User       @relation("AssignedStudent", fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@unique([assignmentId, studentId])
+  @@index([studentId, assignedAt])
+}
+
+model Submission {
+  id           String           @id @default(uuid()) @db.Uuid
+  assignmentId String           @db.Uuid
+  studentId    String           @db.Uuid
+  videoAssetId String?          @unique @db.Uuid
+  status       SubmissionStatus @default(IN_PROGRESS)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  submittedAt  DateTime?
+  completedAt  DateTime?
+  assignment   Assignment       @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student      User             @relation("StudentSubmissions", fields: [studentId], references: [id], onDelete: Restrict)
+  video        MediaAsset?      @relation("SubmissionVideo", fields: [videoAssetId], references: [id], onDelete: SetNull)
+  grade        Grade?
+
+  @@unique([assignmentId, studentId])
+  @@index([studentId, status])
+  @@index([assignmentId, status])
+}
+
+model Grade {
+  id               String      @id @default(uuid()) @db.Uuid
+  submissionId     String      @unique @db.Uuid
+  teacherId        String      @db.Uuid
+  automatedOverall Int?
+  formScore        Int?
+  activityScore    Int?
+  timingScore      Int?
+  coverageScore    Int?
+  analysisDetails  Json?
+  finalScore       Int?
+  overrideReason   String?     @db.VarChar(1000)
+  feedback         String?     @db.Text
+  status           GradeStatus @default(DRAFT)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  releasedAt       DateTime?
+  submission       Submission  @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  teacher          User        @relation("GradeTeacher", fields: [teacherId], references: [id], onDelete: Restrict)
+
+  @@index([teacherId, status])
+}
+
+model MediaAsset {
+  id               String           @id @default(uuid()) @db.Uuid
+  ownerId          String           @db.Uuid
+  kind             MediaAssetKind
+  status           MediaAssetStatus @default(PENDING_UPLOAD)
+  bucket           String           @db.VarChar(255)
+  objectKey        String           @unique @db.VarChar(1024)
+  originalFilename String?          @db.VarChar(255)
+  contentType      String           @db.VarChar(127)
+  byteSize         BigInt?
+  etag             String?          @db.VarChar(255)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  uploadedAt       DateTime?
+  deletedAt        DateTime?
+  owner            User             @relation("MediaOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  referenceFor     Assignment?      @relation("AssignmentReferenceVideo")
+  submissionFor    Submission?      @relation("SubmissionVideo")
+
+  @@index([ownerId, kind, status])
+  @@index([status, createdAt])
+}
+
+model RateLimitBucket {
+  keyHash         String   @id @db.Char(64)
+  count           Int
+  windowStartedAt DateTime
+  expiresAt       DateTime
+
+  @@index([expiresAt])
+}

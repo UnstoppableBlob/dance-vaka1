@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dance Video Comparator</title>
+<style>
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #101112;
+    color: #f2f2f2;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  button,
+  input,
+  select {
+    font: inherit;
+  }
+  button {
+    border: 1px solid #555;
+    border-radius: 4px;
+    background: #2b2d2f;
+    color: #f2f2f2;
+    padding: 9px 14px;
+    cursor: pointer;
+  }
+  button:disabled {
+    opacity: 0.48;
+    cursor: not-allowed;
+  }
+  input,
+  select {
+    border: 1px solid #444;
+    border-radius: 4px;
+    background: #181a1c;
+    color: #f2f2f2;
+    padding: 7px 8px;
+  }
+  label {
+    color: #cfcfcf;
+    font-size: 13px;
+  }
+  main {
+    width: min(1240px, calc(100vw - 32px));
+    margin: 0 auto;
+    padding: 18px 0 28px;
+    display: grid;
+    gap: 14px;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  h1 {
+    margin: 0;
+    font-size: 22px;
+    line-height: 1.1;
+    margin-right: auto;
+  }
+  #status {
+    color: #9ee7ff;
+    font-size: 13px;
+  }
+  .video-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(280px, 1fr));
+    gap: 12px;
+  }
+  .video-panel,
+  .results-panel,
+  .review-panel {
+    border: 1px solid #333;
+    border-radius: 6px;
+    background: #17191b;
+    padding: 12px;
+    display: grid;
+    gap: 10px;
+  }
+  .panel-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+  }
+  .badge {
+    border: 1px solid #3f4f55;
+    border-radius: 4px;
+    color: #9ee7ff;
+    padding: 2px 6px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .video-stage {
+    position: relative;
+    width: 100%;
+    min-height: 180px;
+    background: #0c0d0e;
+    border: 1px solid #2b2b2b;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  video {
+    display: block;
+    width: 100%;
+    max-height: 420px;
+    background: #050607;
+  }
+  canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  .meta {
+    color: #aaa;
+    font-size: 13px;
+    min-height: 18px;
+  }
+  .controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .controls label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .controls input[type="number"] {
+    width: 78px;
+  }
+  progress {
+    width: min(360px, 100%);
+    height: 12px;
+    accent-color: #2dd4bf;
+  }
+  .score-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(120px, 1fr));
+    gap: 8px;
+  }
+  .score-card {
+    border: 1px solid #333;
+    border-radius: 6px;
+    background: #202225;
+    padding: 10px;
+    display: grid;
+    gap: 3px;
+  }
+  .score-label {
+    color: #aaa;
+    font-size: 12px;
+  }
+  .score-value {
+    font-size: 24px;
+    font-weight: 800;
+  }
+  .score-good {
+    color: #30d158;
+  }
+  .score-ok {
+    color: #ffd166;
+  }
+  .score-low {
+    color: #ff6b6b;
+  }
+  #feedbackList {
+    display: grid;
+    gap: 6px;
+  }
+  .feedback-row {
+    border: 1px solid #333;
+    border-radius: 4px;
+    background: #202225;
+    padding: 8px;
+    color: #ddd;
+    font-size: 14px;
+  }
+  #timeline {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8px, 1fr));
+    gap: 2px;
+    min-height: 26px;
+  }
+  .timeline-cell {
+    border: 0;
+    border-radius: 2px;
+    min-height: 26px;
+    padding: 0;
+  }
+  .timeline-cell.selected {
+    outline: 2px solid #fff;
+    outline-offset: 1px;
+  }
+  .review-panel {
+    grid-template-columns: 1fr;
+  }
+  #reviewSlider {
+    width: min(520px, 100%);
+  }
+  .note {
+    color: #8f969e;
+    font-size: 12px;
+  }
+  @media (max-width: 780px) {
+    main {
+      width: min(100vw - 20px, 1240px);
+    }
+    .video-grid,
+    .score-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Dance Video Comparator</h1>
+    <button id="analyzeBtn" disabled>Analyze</button>
+    <button id="clearBtn">Clear</button>
+    <span id="status">Upload a master video and a student video.</span>
+  </header>
+
+  <section class="video-grid" aria-label="Video upload and preview">
+    <div class="video-panel">
+      <div class="panel-title"><span class="badge">Master</span> Reference video</div>
+      <input id="masterInput" type="file" accept="video/*">
+      <div class="video-stage">
+        <video id="masterVideo" muted playsinline controls></video>
+        <canvas id="masterCanvas"></canvas>
+      </div>
+      <div id="masterMeta" class="meta">No video selected</div>
+    </div>
+
+    <div class="video-panel">
+      <div class="panel-title"><span class="badge">Student</span> Submission video</div>
+      <input id="studentInput" type="file" accept="video/*">
+      <div class="video-stage">
+        <video id="studentVideo" muted playsinline controls></video>
+        <canvas id="studentCanvas"></canvas>
+      </div>
+      <div id="studentMeta" class="meta">No video selected</div>
+    </div>
+  </section>
+
+  <section class="results-panel" aria-label="Analysis controls and results">
+    <div class="controls">
+      <label>Sample FPS <input id="sampleFpsInput" type="number" min="1" max="10" step="1" value="4"></label>
+      <label>Max Frames <input id="maxFramesInput" type="number" min="12" max="180" step="6" value="72"></label>
+      <progress id="progressBar" value="0" max="1"></progress>
+      <span id="progressText" class="meta">Idle</span>
+    </div>
+
+    <div class="score-grid">
+      <div class="score-card">
+        <div class="score-label">Overall</div>
+        <div id="overallScore" class="score-value">--</div>
+      </div>
+      <div class="score-card">
+        <div class="score-label">Form</div>
+        <div id="formScore" class="score-value">--</div>
+      </div>
+      <div class="score-card">
+        <div class="score-label">Activity</div>
+        <div id="activityScore" class="score-value">--</div>
+      </div>
+      <div class="score-card">
+        <div class="score-label">Timing</div>
+        <div id="timingScore" class="score-value">--</div>
+      </div>
+    </div>
+
+    <div id="feedbackList">
+      <div class="feedback-row">Scores will appear after analysis. All processing happens locally in this browser.</div>
+    </div>
+
+    <div id="timeline" aria-label="Per-frame comparison timeline"></div>
+  </section>
+
+  <section class="review-panel" aria-label="Matched moment review">
+    <div class="controls">
+      <label for="reviewSlider">Review frame</label>
+      <input id="reviewSlider" type="range" min="0" max="0" step="1" value="0" disabled>
+      <span id="reviewLabel" class="meta">No analysis yet</span>
+    </div>
+    <div class="note">Green skeleton is the master frame. Blue skeleton is the student frame. The timeline samples both videos at matching progress points, so a shorter or longer student video can still be compared to the same action arc.</div>
+  </section>
+</main>
+
+<script type="module">
+import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/vision_bundle.mjs";
+
+const masterInput = document.getElementById('masterInput');
+const studentInput = document.getElementById('studentInput');
+const masterVideo = document.getElementById('masterVideo');
+const studentVideo = document.getElementById('studentVideo');
+const masterCanvas = document.getElementById('masterCanvas');
+const studentCanvas = document.getElementById('studentCanvas');
+const masterMeta = document.getElementById('masterMeta');
+const studentMeta = document.getElementById('studentMeta');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const clearBtn = document.getElementById('clearBtn');
+const statusEl = document.getElementById('status');
+const sampleFpsInput = document.getElementById('sampleFpsInput');
+const maxFramesInput = document.getElementById('maxFramesInput');
+const progressBar = document.getElementById('progressBar');
+const progressText = document.getElementById('progressText');
+const overallScoreEl = document.getElementById('overallScore');
+const formScoreEl = document.getElementById('formScore');
+const activityScoreEl = document.getElementById('activityScore');
+const timingScoreEl = document.getElementById('timingScore');
+const feedbackList = document.getElementById('feedbackList');
+const timeline = document.getElementById('timeline');
+const reviewSlider = document.getElementById('reviewSlider');
+const reviewLabel = document.getElementById('reviewLabel');
+
+const POSE_MATCH_THRESHOLD = 0.18;
+const POSE_COMPARE_LANDMARKS = [0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28];
+const POSE_SIDE_SWAP = new Map([
+  [11, 12], [12, 11],
+  [13, 14], [14, 13],
+  [15, 16], [16, 15],
+  [23, 24], [24, 23],
+  [25, 26], [26, 25],
+  [27, 28], [28, 27],
+]);
+const POSE_COMPARE_SEGMENTS = [
+  { label: 'shoulders', from: 11, to: 12 },
+  { label: 'left upper arm', from: 11, to: 13 },
+  { label: 'left forearm', from: 13, to: 15 },
+  { label: 'right upper arm', from: 12, to: 14 },
+  { label: 'right forearm', from: 14, to: 16 },
+  { label: 'hips', from: 23, to: 24 },
+  { label: 'left thigh', from: 23, to: 25 },
+  { label: 'left lower leg', from: 25, to: 27 },
+  { label: 'right thigh', from: 24, to: 26 },
+  { label: 'right lower leg', from: 26, to: 28 },
+];
+const POSE_COMPARE_JOINTS = [
+  { label: 'left elbow', a: 11, b: 13, c: 15 },
+  { label: 'right elbow', a: 12, b: 14, c: 16 },
+  { label: 'left knee', a: 23, b: 25, c: 27 },
+  { label: 'right knee', a: 24, b: 26, c: 28 },
+  { label: 'left shoulder', a: 23, b: 11, c: 13 },
+  { label: 'right shoulder', a: 24, b: 12, c: 14 },
+  { label: 'left hip', a: 11, b: 23, c: 25 },
+  { label: 'right hip', a: 12, b: 24, c: 26 },
+];
+const SKELETON_CONNECTIONS = [
+  [11, 12],
+  [11, 23], [12, 24],
+  [23, 24],
+  [11, 13], [13, 15],
+  [12, 14], [14, 16],
+  [23, 25], [25, 27],
+  [24, 26], [26, 28],
+];
+
+let poseLandmarker = null;
+let detectorTimestamp = 0;
+let masterUrl = null;
+let studentUrl = null;
+let lastAnalysis = null;
+let selectedReviewIndex = 0;
+
+masterInput.addEventListener('change', () => handleVideoUpload('master'));
+studentInput.addEventListener('change', () => handleVideoUpload('student'));
+analyzeBtn.addEventListener('click', analyzeVideos);
+clearBtn.addEventListener('click', clearApp);
+reviewSlider.addEventListener('input', () => showReviewFrame(Number(reviewSlider.value)));
+window.addEventListener('resize', () => {
+  if (lastAnalysis) {
+    showReviewFrame(selectedReviewIndex);
+  }
+});
+
+function handleVideoUpload(kind) {
+  const input = kind === 'master' ? masterInput : studentInput;
+  const video = kind === 'master' ? masterVideo : studentVideo;
+  const meta = kind === 'master' ? masterMeta : studentMeta;
+  const currentUrl = kind === 'master' ? masterUrl : studentUrl;
+
+  if (currentUrl) {
+    URL.revokeObjectURL(currentUrl);
+  }
+
+  const file = input.files?.[0];
+  clearCanvas(kind === 'master' ? masterCanvas : studentCanvas);
+
+  if (!file) {
+    video.removeAttribute('src');
+    meta.textContent = 'No video selected';
+    if (kind === 'master') masterUrl = null;
+    if (kind === 'student') studentUrl = null;
+    updateAnalyzeButton();
+    return;
+  }
+
+  const url = URL.createObjectURL(file);
+  if (kind === 'master') masterUrl = url;
+  if (kind === 'student') studentUrl = url;
+  video.src = url;
+  video.load();
+  meta.textContent = `${file.name} | loading metadata`;
+  video.onloadedmetadata = () => {
+    meta.textContent = `${file.name} | ${formatDuration(video.duration)} | ${video.videoWidth}x${video.videoHeight}`;
+    updateAnalyzeButton();
+  };
+}
+
+function updateAnalyzeButton() {
+  analyzeBtn.disabled = !(masterVideo.duration && studentVideo.duration);
+}
+
+async function ensurePoseLandmarker() {
+  if (poseLandmarker) return poseLandmarker;
+
+  setStatus('Loading pose model...');
+  const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm");
+  poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+    baseOptions: {
+      modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task",
+      delegate: 'GPU',
+    },
+    runningMode: 'VIDEO',
+    numPoses: 1,
+    minPoseDetectionConfidence: 0.45,
+    minPosePresenceConfidence: 0.45,
+    minTrackingConfidence: 0.45,
+  });
+  return poseLandmarker;
+}
+
+async function analyzeVideos() {
+  if (!masterVideo.duration || !studentVideo.duration) return;
+
+  analyzeBtn.disabled = true;
+  reviewSlider.disabled = true;
+  setScores(null);
+  feedbackList.replaceChildren(createFeedbackRow('Analyzing videos locally. This can take a moment for longer clips.'));
+  timeline.replaceChildren();
+  progressBar.value = 0;
+  detectorTimestamp = 0;
+
+  try {
+    await ensurePoseLandmarker();
+    const sampleFps = clamp(Number(sampleFpsInput.value) || 4, 1, 10);
+    const maxFrames = clamp(Number(maxFramesInput.value) || 72, 12, 180);
+    const sampleCount = Math.max(8, Math.min(maxFrames, Math.ceil(Math.max(masterVideo.duration, studentVideo.duration) * sampleFps)));
+    const samples = [];
+
+    for (let index = 0; index < sampleCount; index += 1) {
+      const progress = sampleCount === 1 ? 0 : index / (sampleCount - 1);
+      const masterTime = progress * masterVideo.duration;
+      const studentTime = progress * studentVideo.duration;
+      const masterSample = await sampleVideoPose(masterVideo, masterTime);
+      const studentSample = await sampleVideoPose(studentVideo, studentTime);
+      const comparison = masterSample.landmarks && studentSample.landmarks
+        ? comparePoseLandmarks(studentSample.landmarks, masterSample.landmarks)
+        : null;
+      samples.push({
+        index,
+        progress,
+        masterTime,
+        studentTime,
+        master: masterSample,
+        student: studentSample,
+        comparison,
+      });
+      progressBar.value = (index + 1) / sampleCount;
+      progressText.textContent = `${index + 1}/${sampleCount} frames`;
+    }
+
+    lastAnalysis = buildAnalysis(samples);
+    renderAnalysis(lastAnalysis);
+    await showReviewFrame(0);
+    setStatus('Analysis complete.');
+  } catch (err) {
+    console.error(err);
+    setStatus(`Analysis failed: ${err.message}`);
+    feedbackList.replaceChildren(createFeedbackRow(`Analysis failed: ${err.message}`));
+  } finally {
+    analyzeBtn.disabled = false;
+  }
+}
+
+async function sampleVideoPose(video, timeSeconds) {
+  await seekVideo(video, timeSeconds);
+  detectorTimestamp += 34;
+  const results = poseLandmarker.detectForVideo(video, detectorTimestamp);
+  const landmarks = results.landmarks?.[0] ? cloneLandmarks(results.landmarks[0]) : null;
+  return {
+    timeSeconds,
+    landmarks,
+    center: landmarks ? getPoseCenter(landmarks) : null,
+    quality: landmarks ? getPoseQuality(landmarks) : 0,
+  };
+}
+
+function seekVideo(video, timeSeconds) {
+  return new Promise(resolve => {
+    const safeTime = clamp(timeSeconds, 0, Math.max(0, video.duration - 0.02));
+    const done = () => {
+      video.removeEventListener('seeked', done);
+      requestAnimationFrame(resolve);
+    };
+
+    if (Math.abs(video.currentTime - safeTime) < 0.015 && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      requestAnimationFrame(resolve);
+      return;
+    }
+
+    video.addEventListener('seeked', done, { once: true });
+    video.currentTime = safeTime;
+  });
+}
+
+function buildAnalysis(samples) {
+  const formScores = samples
+    .map(sample => sample.comparison?.score)
+    .filter(score => Number.isFinite(score));
+  const formScore = average(formScores);
+  const masterEnergy = getMotionEnergy(samples.map(sample => sample.master.landmarks));
+  const studentEnergy = getMotionEnergy(samples.map(sample => sample.student.landmarks));
+  const activityScore = getActivityScore(masterEnergy, studentEnergy);
+  const timingScore = getTimingScore(masterVideo.duration, studentVideo.duration);
+  const coverageScore = Math.round((formScores.length / samples.length) * 100);
+  const overall = weightedScore([
+    { value: formScore, weight: 0.58 },
+    { value: activityScore, weight: 0.24 },
+    { value: timingScore, weight: 0.12 },
+    { value: coverageScore, weight: 0.06 },
+  ]);
+  const mismatchCounts = countMismatches(samples);
+
+  return {
+    samples,
+    formScore,
+    activityScore,
+    timingScore,
+    coverageScore,
+    overall,
+    mismatchCounts,
+    masterEnergy,
+    studentEnergy,
+  };
+}
+
+function renderAnalysis(analysis) {
+  setScores(analysis);
+  renderFeedback(analysis);
+  renderTimeline(analysis);
+  reviewSlider.disabled = false;
+  reviewSlider.max = String(Math.max(0, analysis.samples.length - 1));
+  reviewSlider.value = '0';
+}
+
+function setScores(analysis) {
+  setScore(overallScoreEl, analysis?.overall);
+  setScore(formScoreEl, analysis?.formScore);
+  setScore(activityScoreEl, analysis?.activityScore);
+  setScore(timingScoreEl, analysis?.timingScore);
+}
+
+function setScore(element, score) {
+  element.textContent = score == null ? '--' : `${Math.round(score)}`;
+  element.classList.remove('score-good', 'score-ok', 'score-low');
+  if (score == null) return;
+  element.classList.add(score >= 85 ? 'score-good' : score >= 68 ? 'score-ok' : 'score-low');
+}
+
+function renderFeedback(analysis) {
+  const rows = [];
+  rows.push(createFeedbackRow(`Overall: ${gradeLabel(analysis.overall)}. Pose detected in ${analysis.coverageScore}% of matched frames.`));
+
+  if (analysis.mismatchCounts.length > 0) {
+    rows.push(createFeedbackRow(`Most different form areas: ${analysis.mismatchCounts.slice(0, 4).map(item => item.label).join(', ')}.`));
+  } else {
+    rows.push(createFeedbackRow('No consistent form mismatch stood out in the sampled frames.'));
+  }
+
+  const durationDiff = studentVideo.duration - masterVideo.duration;
+  rows.push(createFeedbackRow(`Timing: student video is ${Math.abs(durationDiff).toFixed(1)}s ${durationDiff >= 0 ? 'longer' : 'shorter'} than the master.`));
+  rows.push(createFeedbackRow('Activity score compares the motion-energy pattern across the clips; form score compares normalized pose landmarks, limb angles, and joint angles.'));
+  feedbackList.replaceChildren(...rows);
+}
+
+function renderTimeline(analysis) {
+  timeline.replaceChildren();
+
+  for (const sample of analysis.samples) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `timeline-cell${sample.index === selectedReviewIndex ? ' selected' : ''}`;
+    const score = sample.comparison?.score ?? 0;
+    button.style.background = getScoreColor(score, Boolean(sample.comparison));
+    button.title = `Frame ${sample.index + 1}: ${sample.comparison ? `${sample.comparison.score}%` : 'no pose match'}`;
+    button.addEventListener('click', () => showReviewFrame(sample.index));
+    timeline.append(button);
+  }
+}
+
+async function showReviewFrame(index) {
+  if (!lastAnalysis) return;
+
+  selectedReviewIndex = clamp(index, 0, lastAnalysis.samples.length - 1);
+  const sample = lastAnalysis.samples[selectedReviewIndex];
+  reviewSlider.value = String(selectedReviewIndex);
+  reviewLabel.textContent = `Master ${formatDuration(sample.masterTime)} | Student ${formatDuration(sample.studentTime)} | ${sample.comparison ? `${sample.comparison.score}% form` : 'pose missing'}`;
+  await Promise.all([
+    seekVideo(masterVideo, sample.masterTime),
+    seekVideo(studentVideo, sample.studentTime),
+  ]);
+  drawSkeletonOverlay(masterCanvas, sample.master.landmarks, '#30d158', 'Master');
+  drawSkeletonOverlay(studentCanvas, sample.student.landmarks, '#00d9ff', 'Student');
+  renderTimeline(lastAnalysis);
+}
+
+function drawSkeletonOverlay(canvas, landmarks, color, label) {
+  const video = canvas === masterCanvas ? masterVideo : studentVideo;
+  const rect = video.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.max(1, Math.round(rect.width * dpr));
+  canvas.height = Math.max(1, Math.round(rect.height * dpr));
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (!landmarks) {
+    ctx.fillStyle = '#ff6b6b';
+    ctx.font = `${14 * dpr}px system-ui, sans-serif`;
+    ctx.fillText('No pose detected', 12 * dpr, 24 * dpr);
+    return;
+  }
+
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = 3 * dpr;
+  ctx.lineCap = 'round';
+
+  for (const [from, to] of SKELETON_CONNECTIONS) {
+    const a = landmarks[from];
+    const b = landmarks[to];
+    if (isVisible(a, 0.25) && isVisible(b, 0.25)) {
+      ctx.beginPath();
+      ctx.moveTo(a.x * w, a.y * h);
+      ctx.lineTo(b.x * w, b.y * h);
+      ctx.stroke();
+    }
+  }
+
+  for (const index of POSE_COMPARE_LANDMARKS) {
+    const point = landmarks[index];
+    if (isVisible(point, 0.25)) {
+      ctx.beginPath();
+      ctx.arc(point.x * w, point.y * h, (index === 0 ? 5 : 4) * dpr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  ctx.font = `${14 * dpr}px system-ui, sans-serif`;
+  ctx.lineWidth = 4 * dpr;
+  ctx.strokeStyle = '#000';
+  ctx.strokeText(label, 12 * dpr, 24 * dpr);
+  ctx.fillStyle = color;
+  ctx.fillText(label, 12 * dpr, 24 * dpr);
+}
+
+function comparePoseLandmarks(studentLandmarks, masterLandmarks) {
+  const studentVariants = [
+    normalizePoseForComparison(studentLandmarks, { mirrorX: false, swapSides: false, label: 'normal' }),
+    normalizePoseForComparison(studentLandmarks, { mirrorX: true, swapSides: false, label: 'mirrored' }),
+    normalizePoseForComparison(studentLandmarks, { mirrorX: true, swapSides: true, label: 'mirrored-sides' }),
+  ].filter(Boolean);
+  const master = normalizePoseForComparison(masterLandmarks, false);
+
+  if (studentVariants.length === 0 || !master) {
+    return null;
+  }
+
+  const candidates = studentVariants
+    .map(student => getPoseComparisonCandidate(student, master))
+    .filter(candidate => Number.isFinite(candidate.error));
+  const best = candidates.sort((a, b) => a.error - b.error)[0];
+
+  if (!best) return null;
+
+  return {
+    error: best.error,
+    score: Math.max(0, Math.round(100 - (best.error / POSE_MATCH_THRESHOLD) * 35)),
+    mirrored: best.student.label !== 'normal',
+    mismatches: best.mismatches,
+  };
+}
+
+function normalizePoseForComparison(landmarks, options = {}) {
+  const {
+    mirrorX = false,
+    swapSides = false,
+    label = 'normal',
+  } = typeof options === 'boolean'
+    ? { mirrorX: options, swapSides: false, label: options ? 'mirrored' : 'normal' }
+    : options;
+  const leftShoulder = landmarks?.[11];
+  const rightShoulder = landmarks?.[12];
+  const leftHip = landmarks?.[23];
+  const rightHip = landmarks?.[24];
+  const anchorPoints = [leftShoulder, rightShoulder, leftHip, rightHip].filter(point => isVisible(point, 0.2));
+
+  if (anchorPoints.length < 2) return null;
+
+  const anchor = anchorPoints.reduce(
+    (sum, point) => ({ x: sum.x + point.x, y: sum.y + point.y }),
+    { x: 0, y: 0 }
+  );
+  anchor.x /= anchorPoints.length;
+  anchor.y /= anchorPoints.length;
+
+  const shoulderScale = isVisible(leftShoulder, 0.2) && isVisible(rightShoulder, 0.2)
+    ? Math.hypot(rightShoulder.x - leftShoulder.x, rightShoulder.y - leftShoulder.y)
+    : 0;
+  const torsoScale = anchorPoints.reduce((largest, point) => (
+    Math.max(largest, Math.hypot(point.x - anchor.x, point.y - anchor.y))
+  ), 0);
+  const scale = Math.max(shoulderScale, torsoScale, 0.001);
+  const points = new Map();
+
+  for (const index of POSE_COMPARE_LANDMARKS) {
+    const point = landmarks[index];
+    if (!isVisible(point, 0.2)) continue;
+    const normalizedIndex = swapSides ? (POSE_SIDE_SWAP.get(index) ?? index) : index;
+    const x = (point.x - anchor.x) / scale;
+    points.set(normalizedIndex, {
+      x: mirrorX ? -x : x,
+      y: (point.y - anchor.y) / scale,
+    });
+  }
+
+  return points.size >= 6 ? { label, points } : null;
+}
+
+function getPoseComparisonCandidate(student, master) {
+  const pointError = getNormalizedPosePointError(student.points, master.points);
+  const segmentComparison = getSegmentComparison(student.points, master.points);
+  const jointComparison = getJointComparison(student.points, master.points);
+  const weightedParts = [
+    { value: pointError, weight: 0.45 },
+    { value: segmentComparison.error, weight: 0.35 },
+    { value: jointComparison.error, weight: 0.2 },
+  ].filter(part => Number.isFinite(part.value));
+
+  if (weightedParts.length === 0) {
+    return { student, error: Infinity, mismatches: [] };
+  }
+
+  const totalWeight = weightedParts.reduce((sum, part) => sum + part.weight, 0);
+  const error = weightedParts.reduce((sum, part) => sum + part.value * part.weight, 0) / totalWeight;
+  const mismatches = [...segmentComparison.mismatches, ...jointComparison.mismatches]
+    .sort((a, b) => b.error - a.error)
+    .slice(0, 3);
+
+  return { student, error, mismatches };
+}
+
+function getNormalizedPosePointError(a, b) {
+  let total = 0;
+  let count = 0;
+
+  for (const [index, pointA] of a.entries()) {
+    const pointB = b.get(index);
+    if (!pointB) continue;
+    total += Math.hypot(pointA.x - pointB.x, pointA.y - pointB.y);
+    count += 1;
+  }
+
+  return count >= 6 ? total / count : Infinity;
+}
+
+function getSegmentComparison(studentPoints, masterPoints) {
+  const mismatches = [];
+  let total = 0;
+  let count = 0;
+
+  for (const segment of POSE_COMPARE_SEGMENTS) {
+    const studentFrom = studentPoints.get(segment.from);
+    const studentTo = studentPoints.get(segment.to);
+    const masterFrom = masterPoints.get(segment.from);
+    const masterTo = masterPoints.get(segment.to);
+
+    if (!studentFrom || !studentTo || !masterFrom || !masterTo) continue;
+
+    const endpointError = (
+      Math.hypot(studentFrom.x - masterFrom.x, studentFrom.y - masterFrom.y) +
+      Math.hypot(studentTo.x - masterTo.x, studentTo.y - masterTo.y)
+    ) / 2;
+    const angleError = getVectorAngleDifference(
+      getVector(studentFrom, studentTo),
+      getVector(masterFrom, masterTo)
+    ) / Math.PI;
+    const error = endpointError * 0.55 + angleError * 0.45;
+    total += error;
+    count += 1;
+
+    if (error > POSE_MATCH_THRESHOLD) {
+      mismatches.push({ label: segment.label, error });
+    }
+  }
+
+  return {
+    error: count >= 4 ? total / count : Infinity,
+    mismatches,
+  };
+}
+
+function getJointComparison(studentPoints, masterPoints) {
+  const mismatches = [];
+  let total = 0;
+  let count = 0;
+
+  for (const joint of POSE_COMPARE_JOINTS) {
+    const studentAngle = getJointAngle(studentPoints.get(joint.a), studentPoints.get(joint.b), studentPoints.get(joint.c));
+    const masterAngle = getJointAngle(masterPoints.get(joint.a), masterPoints.get(joint.b), masterPoints.get(joint.c));
+    if (studentAngle == null || masterAngle == null) continue;
+
+    const error = Math.abs(studentAngle - masterAngle) / Math.PI;
+    total += error;
+    count += 1;
+
+    if (error > POSE_MATCH_THRESHOLD) {
+      mismatches.push({ label: joint.label, error });
+    }
+  }
+
+  return {
+    error: count >= 2 ? total / count : Infinity,
+    mismatches,
+  };
+}
+
+function getMotionEnergy(landmarkFrames) {
+  const energies = [];
+
+  for (let index = 1; index < landmarkFrames.length; index += 1) {
+    const previous = normalizePoseForComparison(landmarkFrames[index - 1], false);
+    const current = normalizePoseForComparison(landmarkFrames[index], false);
+
+    if (!previous || !current) {
+      energies.push(null);
+      continue;
+    }
+
+    let total = 0;
+    let count = 0;
+
+    for (const [landmarkIndex, point] of current.points.entries()) {
+      const previousPoint = previous.points.get(landmarkIndex);
+      if (!previousPoint) continue;
+      total += Math.hypot(point.x - previousPoint.x, point.y - previousPoint.y);
+      count += 1;
+    }
+
+    energies.push(count >= 6 ? total / count : null);
+  }
+
+  return energies;
+}
+
+function getActivityScore(masterEnergy, studentEnergy) {
+  const pairs = masterEnergy
+    .map((masterValue, index) => ({ masterValue, studentValue: studentEnergy[index] }))
+    .filter(pair => Number.isFinite(pair.masterValue) && Number.isFinite(pair.studentValue));
+
+  if (pairs.length === 0) return null;
+
+  const masterAverage = average(pairs.map(pair => pair.masterValue));
+  const studentAverage = average(pairs.map(pair => pair.studentValue));
+  const scale = Math.max(masterAverage, studentAverage, 0.02);
+  const meanError = average(pairs.map(pair => Math.abs(pair.masterValue - pair.studentValue))) / scale;
+  return Math.max(0, Math.round(100 - meanError * 55));
+}
+
+function getTimingScore(masterDuration, studentDuration) {
+  if (!masterDuration || !studentDuration) return null;
+  const ratio = Math.min(masterDuration, studentDuration) / Math.max(masterDuration, studentDuration);
+  return Math.round(ratio * 100);
+}
+
+function countMismatches(samples) {
+  const counts = new Map();
+
+  for (const sample of samples) {
+    for (const mismatch of sample.comparison?.mismatches ?? []) {
+      counts.set(mismatch.label, (counts.get(mismatch.label) ?? 0) + 1);
+    }
+  }
+
+  return [...counts.entries()]
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
+function getPoseCenter(landmarks) {
+  const points = [0, 11, 12, 23, 24]
+    .map(index => landmarks[index])
+    .filter(point => isVisible(point, 0.25));
+
+  if (points.length === 0) return null;
+  const total = points.reduce((sum, point) => ({ x: sum.x + point.x, y: sum.y + point.y }), { x: 0, y: 0 });
+  return {
+    x: total.x / points.length,
+    y: total.y / points.length,
+  };
+}
+
+function getPoseQuality(landmarks) {
+  return [0, 11, 12, 23, 24].reduce((quality, index) => (
+    quality + (isVisible(landmarks[index], 0.35) ? 1 : 0)
+  ), 0);
+}
+
+function getVector(from, to) {
+  return {
+    x: to.x - from.x,
+    y: to.y - from.y,
+  };
+}
+
+function getVectorAngleDifference(a, b) {
+  const angleA = Math.atan2(a.y, a.x);
+  const angleB = Math.atan2(b.y, b.x);
+  let difference = Math.abs(angleA - angleB);
+  if (difference > Math.PI) difference = Math.PI * 2 - difference;
+  return difference;
+}
+
+function getJointAngle(a, b, c) {
+  if (!a || !b || !c) return null;
+  const vectorA = getVector(b, a);
+  const vectorC = getVector(b, c);
+  const lengthA = Math.hypot(vectorA.x, vectorA.y);
+  const lengthC = Math.hypot(vectorC.x, vectorC.y);
+  if (lengthA <= 0.001 || lengthC <= 0.001) return null;
+  const dot = vectorA.x * vectorC.x + vectorA.y * vectorC.y;
+  return Math.acos(clamp(dot / (lengthA * lengthC), -1, 1));
+}
+
+function isVisible(landmark, threshold = 0.35) {
+  return Boolean(
+    landmark &&
+    Number.isFinite(landmark.x) &&
+    Number.isFinite(landmark.y) &&
+    (landmark.visibility == null || landmark.visibility >= threshold)
+  );
+}
+
+function cloneLandmarks(landmarks) {
+  return landmarks.map(landmark => ({
+    x: landmark.x,
+    y: landmark.y,
+    z: landmark.z,
+    visibility: landmark.visibility,
+  }));
+}
+
+function createFeedbackRow(text) {
+  const row = document.createElement('div');
+  row.className = 'feedback-row';
+  row.textContent = text;
+  return row;
+}
+
+function average(values) {
+  const finite = values.filter(value => Number.isFinite(value));
+  return finite.length ? finite.reduce((sum, value) => sum + value, 0) / finite.length : null;
+}
+
+function weightedScore(parts) {
+  const usable = parts.filter(part => Number.isFinite(part.value));
+  const totalWeight = usable.reduce((sum, part) => sum + part.weight, 0);
+  return usable.length ? Math.round(usable.reduce((sum, part) => sum + part.value * part.weight, 0) / totalWeight) : null;
+}
+
+function gradeLabel(score) {
+  if (score == null) return 'Not enough pose data';
+  if (score >= 90) return 'Excellent match';
+  if (score >= 80) return 'Strong match';
+  if (score >= 68) return 'Needs review';
+  return 'Needs significant correction';
+}
+
+function getScoreColor(score, hasScore) {
+  if (!hasScore) return '#3a3d42';
+  if (score >= 85) return '#30d158';
+  if (score >= 68) return '#ffd166';
+  return '#ff6b6b';
+}
+
+function formatDuration(seconds) {
+  if (!Number.isFinite(seconds)) return '--';
+  const minutes = Math.floor(seconds / 60);
+  const remainder = Math.max(0, seconds - minutes * 60);
+  return `${minutes}:${remainder.toFixed(1).padStart(4, '0')}`;
+}
+
+function clearCanvas(canvas) {
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function setStatus(message) {
+  statusEl.textContent = message;
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function clearApp() {
+  if (masterUrl) URL.revokeObjectURL(masterUrl);
+  if (studentUrl) URL.revokeObjectURL(studentUrl);
+  masterUrl = null;
+  studentUrl = null;
+  masterInput.value = '';
+  studentInput.value = '';
+  masterVideo.removeAttribute('src');
+  studentVideo.removeAttribute('src');
+  masterMeta.textContent = 'No video selected';
+  studentMeta.textContent = 'No video selected';
+  clearCanvas(masterCanvas);
+  clearCanvas(studentCanvas);
+  lastAnalysis = null;
+  selectedReviewIndex = 0;
+  reviewSlider.disabled = true;
+  reviewSlider.max = '0';
+  reviewSlider.value = '0';
+  reviewLabel.textContent = 'No analysis yet';
+  progressBar.value = 0;
+  progressText.textContent = 'Idle';
+  setScores(null);
+  timeline.replaceChildren();
+  feedbackList.replaceChildren(createFeedbackRow('Scores will appear after analysis. All processing happens locally in this browser.'));
+  setStatus('Upload a master video and a student video.');
+  updateAnalyzeButton();
+}
+
+window.compareApp = {
+  comparePoseLandmarks,
+  normalizePoseForComparison,
+  getActivityScore,
+  getTimingScore,
+};
+</script>
+</body>
+</html>

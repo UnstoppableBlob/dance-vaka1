@@ -1,0 +1,98 @@
+PROMPT 1 — Establish the full-stack foundation [COMPLETED]
+
+Inspect the repository and build the foundation using Next.js App Router, TypeScript, Tailwind CSS, PostgreSQL with Prisma, secure username/password-ready data models, and S3-compatible private storage with MinIO locally. Preserve compare.html, add Docker Compose, environment examples, initial migrations, a storage abstraction, setup documentation, and a minimal application shell. Run lint, type checks, migrations, and a production build.
+
+
+PROMPT 2 — Implement secure role-based authentication [COMPLETED]
+
+Implement registration, login, logout, durable secure sessions, and server-enforced TEACHER/STUDENT authorization. Normalize usernames case-insensitively, hash passwords securely, validate forms on client and server, rotate/invalidate sessions, add role-aware dashboards and redirects, and test registration, duplicates, credentials, protected routes, and cross-role access. Keep the visual design restrained and run the full verification suite.
+
+
+PROMPT 3 — Implement teacher class creation and management
+
+Continue from the current repository state. Let authenticated teachers create, list, open, rename, and archive their own classes. Add server-side validation, normalized class-name uniqueness per teacher, timestamps, minimal responsive pages, and empty/error states. Enforce ownership at every query and mutation. Add focused tests for creation, duplicates, archiving, and access by another teacher or a student. Run tests, lint, type checks, and build.
+
+
+PROMPT 4 — Implement teacher-side student invitations
+
+Add the teacher workflow for inviting an existing student by exact username from a class page. Validate that the target exists and has the STUDENT role, avoid broad user search or private-data exposure, prevent duplicate invitations/memberships, and allow a teacher to cancel a pending invitation. Show pending invitation status in the class page. Add authorization and duplicate-prevention tests, then run all checks.
+
+
+PROMPT 5 — Implement student invitation responses and class rosters
+
+Build a student invitations page where students can accept or decline pending invitations. Acceptance must atomically update the invitation and create/reactivate membership. Teachers should see active students in the class roster and be able to remove them without deleting history. Students should see their enrolled classes. Test accept, decline, stale invitations, removal/reactivation, and unauthorized joining. Run the verification suite.
+
+
+PROMPT 6 — Implement private media upload authorization
+
+Build the server-side media-upload foundation using the existing S3 abstraction. Add short-lived authorized upload/read URLs, collision-resistant object keys, pending/ready media records, completion verification through object metadata, ownership checks, MIME/extension/size limits, and cleanup for abandoned uploads. Keep buckets private. Add focused storage validation and authorization tests and run all checks.
+
+
+PROMPT 7 — Build the reusable browser video recorder
+
+Create a reusable client video component with camera/microphone permission handling, live preview, start/stop recording, elapsed time, review, discard, upload progress, retry, and existing-file fallback. Handle unsupported browsers, denied devices, navigation during recording, object URL/MediaStream cleanup, mobile layout, and server limits from Prompt 6. Add component/utility tests where practical and an authenticated temporary demo page. Run tests and build.
+
+
+PROMPT 8 — Implement assignment drafts and reference videos
+
+Let teachers create and edit assignment drafts inside their own classes with a unique title, instructions, optional due date, and reference video using the reusable recorder/uploader. Support viewing and archiving drafts. Enforce teacher ownership and ensure only ready reference-video assets owned by that teacher can be attached. Add tests for validation, duplicate titles, media ownership, editing, and unauthorized access. Run all checks.
+
+
+PROMPT 9 — Implement assignment publishing and student visibility
+
+Add assignment publishing. Publishing must require a ready reference video, set audit timestamps, and atomically snapshot the class's active students into assignment-recipient records. Students should see only published assignments assigned to them, with Not started and Late status derived correctly. Do not silently alter recipients after publishing. Test publishing requirements, recipient snapshots, visibility, and due-date status. Run the verification suite.
+
+
+PROMPT 10 — Implement student video submissions and completion
+
+Build the student assignment detail and submission flow. Students can watch the private reference video, record/upload a response, review it, submit it, and mark the assignment complete in one atomic server operation. Allow replacement only until grading begins and state that policy in the UI. Enforce recipient, ownership, media-kind, and assignment-state checks. Test submission, completion, replacement rules, late work, and unauthorized access. Run all checks.
+
+
+PROMPT 11 — Build the teacher dashboard overview
+
+Expand the teacher dashboard to show classes, pending invitations, assignment completion counts, recent submissions, and work needing review. Use efficient server-side queries and clear links into classes and submissions. Add restrained loading, empty, and error states without spending significant time on visual polish. Test that all counts and lists are scoped to the signed-in teacher. Run the verification suite.
+
+
+PROMPT 12 — Build teacher student-history pages
+
+From a class roster, let a teacher click a student and view every assignment that student was assigned, its status, completion date, and grade status. Completed assignment names must link to a dedicated grading route containing the correct reference and submission records. Enforce the teacher-class-student relationship at the data layer. Add query and authorization tests, then run all checks.
+
+
+PROMPT 13 — Complete the student dashboard and history
+
+Expand the student dashboard with enrolled classes, pending invitations, upcoming and late assignments, completed work, and released grades. Add assignment/history detail links and pagination where appropriate. Students must never see another student's work or unreleased grades. Add visibility and authorization tests, then run tests, lint, type checks, and build.
+
+
+PROMPT 14 — Extract and test the pose-comparison engine
+
+Use compare.html as the reference and extract its pose normalization, mirroring, landmark, limb-angle, joint-angle, motion-energy, timing, coverage, weighting, and feedback calculations into maintainable TypeScript modules. Keep the original file unchanged. Add deterministic unit tests for identical poses, mismatches, mirroring, missing landmarks, timing, and score bounds. Do not build the full grading UI yet. Run all checks.
+
+
+PROMPT 15 — Build the browser-based grading analysis page
+
+Integrate MediaPipe and the extracted comparison engine into the dedicated grading route. Securely load the selected reference and student videos automatically, then provide side-by-side playback, progress, skeleton overlays, sampled-frame timeline, score cards, feedback, and matched-frame review. Keep analysis in the browser, prevent concurrent runs, clean resources, and recover from model/video failures. Label scores as assistive estimates. Run relevant tests and build.
+
+
+PROMPT 16 — Persist, adjust, and release grades
+
+Let an authorized teacher save the automated score breakdown, add written feedback, optionally override the final numeric grade with a required reason, rerun analysis, and release the grade. Lock or clearly manage submission replacement once grading begins. Students may view only their own released result and feedback. Test ownership, score bounds, override reasons, draft/released visibility, and resubmission behavior. Run all checks.
+
+
+PROMPT 17 — Finish navigation and accessibility
+
+Review the app as one product and add consistent role-aware navigation, breadcrumbs, confirmation dialogs, useful success/error messages, loading states, and friendly empty/404/error pages. Improve keyboard use, labels, focus visibility, contrast, reduced-motion support, video-caption guidance, and mobile recording/grading layouts. Keep the visual design simple and functional. Remove the temporary recorder demo and dead assets. Run accessibility-focused checks, tests, and build.
+
+
+PROMPT 18 — Perform the security hardening pass
+
+Audit every route, action, query, and storage operation for authentication, authorization, IDOR, CSRF, XSS, open redirects, malicious filenames/MIME spoofing, oversized requests, and transactional consistency. Add rate limits for authentication and invitations, secure response headers, safe logging, and session cleanup. Run the dependency audit, fix actionable findings without unsafe forced upgrades, add regression tests, and run the full verification suite.
+
+
+PROMPT 19 — Add complete end-to-end tests
+
+Add deterministic browser-level tests for the main flow: register a teacher and students; create a class; invite and accept; create/publish an assignment with a fixture video; submit and complete student work; open the student history; analyze, save, and release a grade; and view it as the student. Include denied-access cases for both roles and important error states. Use small committed media fixtures and an isolated test database/storage namespace. Make the suite reliable and run all checks.
+
+
+PROMPT 20 — Final release and handoff pass
+
+Perform a final completion review without adding unrelated features. Verify migrations from clean databases, local services, private media behavior, critical responsive screens, formatting, lint, types, unit/integration/E2E tests, and production build. Fix every reproducible failure. Update README with architecture, complete setup, seeding, testing, deployment, storage/CORS configuration, MediaPipe requirements, known limitations, and a manual acceptance checklist. Finish with an inventory of implemented functionality and commands that passed.
